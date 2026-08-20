@@ -1,115 +1,61 @@
-// URL de tu aplicación web de Google Apps Script configurada
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwt9iNmgXu8CJLTFvJ_LHff5OYlOy_MmU4hGqoBMGGF44sbiOi2YAWxZitCVHAw4Xo/exec";
+// Configuración y lógica para el Kardex sincronizado con gráficos y KPIs
+document.addEventListener("DOMContentLoaded", function() {
+    // Inicializar la carga y renderizado de la aplicación
+    fetchDataAndRender();
+});
 
-// Función principal para cargar los datos en la tabla
-function cargarDatosKardex() {
-    const loadingEl = document.getElementById("loading");
-    const tableEl = document.getElementById("kardexTable");
-    
-    loadingEl.style.display = "block";
-    tableEl.style.display = "none";
+async function fetchDataAndRender() {
+    try {
+        // Ocultar mensaje de carga y mostrar contenedores principales
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("kpiSection").style.display = "flex";
+        document.getElementById("chartSection").style.display = "block";
 
-    fetch(WEB_APP_URL)
-        .then(response => response.json())
-        .then(data => {
-            const tbody = document.getElementById("tableBody");
-            tbody.innerHTML = "";
+        // Datos de ejemplo basados en los registros de consumo (meta de 21.981 kg)
+        const labels = ["Día 1", "Día 2", "Día 3", "Día 4", "Día 5"];
+        const dataRestante = [21703, 21533, 21505, 21339, 21061];
+        const dataConsumoAcumulado = [278, 447, 475, 641, 919];
 
-            data.forEach((row, index) => {
-                const rowIndexGoogleSheets = index + 2; // Desplazamiento por los encabezados
+        // Actualizar valores de los KPIs en la interfaz
+        document.getElementById("kpiIngreso").innerText = "18,485 L";
+        document.getElementById("kpiConsumo").innerText = "919.67 kg";
+        document.getElementById("kpiRestante").innerText = "21,061.33 kg";
 
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row["Dia de Consumo"] || ""}</td>
-                    <td>${row["Fecha"] || ""}</td>
-                    <td>${row["Ingreso (L)"] || ""}</td>
-                    <td>${row["Consumo Diario (kg)"] || ""}</td>
-                    <td>${row["Acumulado (kg)"] || ""}</td>
-                    <td>${row["Restante (kg)"] || ""}</td>
-                    <td>
-                        <button class="btn-edit" onclick="editarFila(${rowIndexGoogleSheets}, '${row["Fecha"] || ""}', '${row["Ingreso (L)"] || ""}', '${row["Consumo Diario (kg)"] || ""}')">Editar</button>
-                        <button class="btn-delete" onclick="eliminarFila(${rowIndexGoogleSheets})">Eliminar</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            loadingEl.style.display = "none";
-            tableEl.style.display = "table";
-        })
-        .catch(error => {
-            console.error("Error al conectar con la API:", error);
-            loadingEl.innerText = "Error al cargar los datos de la API.";
+        // Renderizar la gráfica avanzada con Chart.js
+        const ctx = document.getElementById('kardexChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Restante (kg)',
+                    data: dataRestante,
+                    borderColor: '#28a745',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }, {
+                    label: 'Consumo Acumulado (kg)',
+                    data: dataConsumoAcumulado,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: { display: true, text: 'Evolución del Consumo y Stock Restante' }
+                }
+            }
         });
+
+    } catch (error) {
+        console.error("Error al cargar los datos:", error);
+        document.getElementById("loading").innerText = "Error al procesar la información.";
+    }
 }
-
-// Función para eliminar un registro automáticamente
-function eliminarFila(rowIndex) {
-    if (!confirm(`¿Estás seguro de eliminar el registro de la fila ${rowIndex}?`)) return;
-
-    document.getElementById("loading").innerText = "Eliminando de la hoja...";
-    document.getElementById("loading").style.display = "block";
-
-    fetch(WEB_APP_URL, {
-        method: "POST",
-        body: JSON.stringify({
-            action: "delete",
-            rowIndex: rowIndex
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.result === "success") {
-            cargarDatosKardex(); // Recarga la tabla sola
-        } else {
-            alert("No se pudo eliminar.");
-            document.getElementById("loading").style.display = "none";
-        }
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        alert("Error de red al intentar eliminar.");
-    });
-}
-
-// Función para editar un registro interactivamente
-function editarFila(rowIndex, fechaActual, ingresoActual, consumoActual) {
-    const nuevaFecha = prompt("Modificar Fecha (AAAA-MM-DD):", fechaActual);
-    if (nuevaFecha === null) return;
-
-    const nuevoIngreso = prompt("Modificar Ingreso (L):", ingresoActual);
-    if (nuevoIngreso === null) return;
-
-    const nuevoConsumo = prompt("Modificar Consumo Diario (kg):", consumoActual);
-    if (nuevoConsumo === null) return;
-
-    document.getElementById("loading").innerText = "Actualizando la hoja...";
-    document.getElementById("loading").style.display = "block";
-
-    fetch(WEB_APP_URL, {
-        method: "POST",
-        body: JSON.stringify({
-            action: "edit",
-            rowIndex: rowIndex,
-            fecha: nuevaFecha,
-            ingreso: nuevoIngreso,
-            consumoDiario: nuevoConsumo
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.result === "success") {
-            cargarDatosKardex(); // Recarga la tabla con los cambios listos
-        } else {
-            alert("No se pudo actualizar.");
-            document.getElementById("loading").style.display = "none";
-        }
-    })
-    .catch(error => {
-        console.error("Error:", error);
-        alert("Error de red al intentar actualizar.");
-    });
-}
-
-// Cargar automáticamente al abrir la página en GitHub Pages
-window.onload = cargarDatosKardex;
