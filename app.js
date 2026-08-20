@@ -1,61 +1,54 @@
-// Configuración y lógica para el Kardex sincronizado con gráficos y KPIs
-document.addEventListener("DOMContentLoaded", function() {
-    // Inicializar la carga y renderizado de la aplicación
-    fetchDataAndRender();
-});
+let kardexData = JSON.parse(localStorage.getItem('kardexData')) || [
+    { dia: 'Día 1', fecha: '2026-07-21', ingreso: 545, consumo: 278 },
+    { dia: 'Día 2', fecha: '2026-07-22', ingreso: 4590, consumo: 169.444 }
+];
 
-async function fetchDataAndRender() {
-    try {
-        // Ocultar mensaje de carga y mostrar contenedores principales
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("kpiSection").style.display = "flex";
-        document.getElementById("chartSection").style.display = "block";
+function renderApp() {
+    localStorage.setItem('kardexData', JSON.stringify(kardexData));
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    
+    let totalIngreso = 0, totalConsumo = 0;
+    
+    kardexData.forEach((item, index) => {
+        totalIngreso += item.ingreso;
+        totalConsumo += item.consumo;
+        tbody.innerHTML += `<tr>
+            <td>${item.dia}</td><td>${item.fecha}</td><td>${item.ingreso}</td><td>${item.consumo}</td>
+            <td>
+                <button class="btn-edit" onclick="editItem(${index})">Editar</button>
+                <button class="btn-delete" onclick="deleteItem(${index})">Eliminar</button>
+            </td>
+        </tr>`;
+    });
 
-        // Datos de ejemplo basados en los registros de consumo (meta de 21.981 kg)
-        const labels = ["Día 1", "Día 2", "Día 3", "Día 4", "Día 5"];
-        const dataRestante = [21703, 21533, 21505, 21339, 21061];
-        const dataConsumoAcumulado = [278, 447, 475, 641, 919];
-
-        // Actualizar valores de los KPIs en la interfaz
-        document.getElementById("kpiIngreso").innerText = "18,485 L";
-        document.getElementById("kpiConsumo").innerText = "919.67 kg";
-        document.getElementById("kpiRestante").innerText = "21,061.33 kg";
-
-        // Renderizar la gráfica avanzada con Chart.js
-        const ctx = document.getElementById('kardexChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Restante (kg)',
-                    data: dataRestante,
-                    borderColor: '#28a745',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.1
-                }, {
-                    label: 'Consumo Acumulado (kg)',
-                    data: dataConsumoAcumulado,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'top' },
-                    title: { display: true, text: 'Evolución del Consumo y Stock Restante' }
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error("Error al cargar los datos:", error);
-        document.getElementById("loading").innerText = "Error al procesar la información.";
-    }
+    document.getElementById('kpiIngreso').innerText = totalIngreso.toFixed(2);
+    document.getElementById('kpiConsumo').innerText = totalConsumo.toFixed(2);
+    document.getElementById('kpiRestante').innerText = (21981 - totalConsumo).toFixed(2);
+    
+    updateChart();
 }
+
+function deleteItem(index) {
+    kardexData.splice(index, 1);
+    renderApp();
+}
+
+function updateChart() {
+    const ctx = document.getElementById('kardexChart').getContext('2d');
+    if(window.myChart) window.myChart.destroy();
+    window.myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: kardexData.map(i => i.dia),
+            datasets: [{ label: 'Consumo Diario', data: kardexData.map(i => i.consumo), borderColor: '#007bff' }]
+        }
+    });
+}
+
+function toggleTable() {
+    const s = document.getElementById('tableSection');
+    s.style.display = s.style.display === 'none' ? 'block' : 'none';
+}
+
+renderApp();
