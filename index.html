@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Kardex - GitHub Pages</title>
+    <title>Control Kardex - Leche</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f6f9; color: #333; }
-        h2 { color: #0056b3; }
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; }
+        h2 { color: #333; }
         table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
         th { background-color: #007bff; color: white; }
@@ -19,8 +19,8 @@
 </head>
 <body>
 
-    <h2>Control de Kardex - Sincronizado con Google Sheets</h2>
-    <div id="loading">Cargando datos desde Google Sheets...</div>
+    <h2>Control de Kardex de Leche</h2>
+    <div id="loading">Cargando datos...</div>
 
     <table id="kardexTable" style="display:none;">
         <thead>
@@ -35,11 +35,127 @@
             </tr>
         </thead>
         <tbody id="tableBody">
-            <!-- Los datos se inyectarán aquí mediante app.js -->
+            <!-- Los datos se inyectarán aquí dinámicamente -->
         </tbody>
     </table>
 
-    <!-- Vinculamos el archivo de lógica JavaScript -->
-    <script src="app.js"></script>
+    <script>
+        // ⚠️ PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE APPS SCRIPT
+        const WEB_APP_URL = "TU_URL_DE_APPS_SCRIPT_AQUI";
+
+        // Función para cargar los datos al iniciar la página
+        function cargarDatosKardex() {
+            document.getElementById("loading").style.display = "block";
+            document.getElementById("kardexTable").style.display = "none";
+
+            fetch(WEB_APP_URL)
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById("tableBody");
+                    tbody.innerHTML = "";
+
+                    // Iteramos sobre los datos recibidos
+                    // Nota: i = 0 en el array JSON corresponde a la fila 2 de Google Sheets
+                    data.forEach((row, index) => {
+                        const rowIndexGoogleSheets = index + 2; // Fila real en la hoja
+
+                        const tr = document.createElement("tr");
+                        tr.innerHTML = `
+                            <td>${row["Dia de Consumo"] || ""}</td>
+                            <td>${row["Fecha"] || ""}</td>
+                            <td>${row["Ingreso (L)"] || ""}</td>
+                            <td>${row["Consumo Diario (kg)"] || ""}</td>
+                            <td>${row["Acumulado (kg)"] || ""}</td>
+                            <td>${row["Restante (kg)"] || ""}</td>
+                            <td>
+                                <button class="btn-edit" onclick="editarFila(${rowIndexGoogleSheets}, '${row["Fecha"] || ""}', '${row["Ingreso (L)"] || ""}', '${row["Consumo Diario (kg)"] || ""}')">Editar</button>
+                                <button class="btn-delete" onclick="eliminarFila(${rowIndexGoogleSheets})">Eliminar</button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById("loading").style.display = "none";
+                    document.getElementById("kardexTable").style.display = "table";
+                })
+                .catch(error => {
+                    console.error("Error al cargar los datos:", error);
+                    document.getElementById("loading").innerText = "Error al cargar los datos del Kardex.";
+                });
+        }
+
+        // Función para eliminar un registro automáticamente
+        function eliminarFila(rowIndex) {
+            if (!confirm(`¿Estás seguro de eliminar el registro de la fila ${rowIndex}?`)) return;
+
+            document.getElementById("loading").innerText = "Eliminando registro...";
+            document.getElementById("loading").style.display = "block";
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "delete",
+                    rowIndex: rowIndex
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === "success") {
+                    cargarDatosKardex(); // Recarga la tabla automáticamente
+                } else {
+                    alert("Hubo un error al eliminar.");
+                    document.getElementById("loading").style.display = "none";
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Error de red al intentar eliminar.");
+                document.getElementById("loading").style.display = "none";
+            });
+        }
+
+        // Función para editar un registro de forma interactiva
+        function editarFila(rowIndex, fechaActual, ingresoActual, consumoActual) {
+            const nuevaFecha = prompt("Modificar Fecha (AAAA-MM-DD):", fechaActual);
+            if (nuevaFecha === null) return; // Si cancela
+
+            const nuevoIngreso = prompt("Modificar Ingreso (L):", ingresoActual);
+            if (nuevoIngreso === null) return;
+
+            const nuevoConsumo = prompt("Modificar Consumo Diario (kg):", consumoActual);
+            if (nuevoConsumo === null) return;
+
+            document.getElementById("loading").innerText = "Actualizando registro...";
+            document.getElementById("loading").style.display = "block";
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                body: JSON.stringify({
+                    action: "edit",
+                    rowIndex: rowIndex,
+                    fecha: nuevaFecha,
+                    ingreso: nuevoIngreso,
+                    consumoDiario: nuevoConsumo
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === "success") {
+                    cargarDatosKardex(); // Refresca la tabla automáticamente con los nuevos cambios
+                } else {
+                    alert("Hubo un error al actualizar.");
+                    document.getElementById("loading").style.display = "none";
+                }
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                alert("Error de red al intentar actualizar.");
+                document.getElementById("loading").style.display = "none";
+            });
+        }
+
+        // Ejecutar al cargar la página
+        window.onload = cargarDatosKardex;
+    </script>
 </body>
 </html>
