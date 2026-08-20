@@ -1,8 +1,15 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwdEfAmQ3EUX9sT7ZETZMkHyFTwsZfc0xg9VS5uPfagQgB1-5Rgp3_WlHSa_ZgHurhE/exec";
-const META_TOTAL_KG = 21981; // Meta total en kg de leche en polvo
-const RATIO_L_POR_KG = 9;   // 1 kg = 9 Litros
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby0ISdhqN9LcwLCzO8aRa_zDw7ejU6KihbLNQikWuSu0MhYBH_mDgvmDBcYIXQPNV5eFA/exec";
+const META_TOTAL_KG = 21981; 
+const RATIO_L_POR_KG = 9;   
 
 let kardexData = [];
+
+// Función para formatear números con separador de miles por puntos y 3 decimales
+function formatNumber(num) {
+    let parts = num.toFixed(3).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return parts.join(',');
+}
 
 async function loadFromGoogleSheets() {
     try {
@@ -15,7 +22,7 @@ async function loadFromGoogleSheets() {
         }
         renderApp();
     } catch (error) {
-        console.warn("Cargando desde respaldo local por error de red:", error);
+        console.warn("Cargando desde respaldo local:", error);
         kardexData = JSON.parse(localStorage.getItem('kardexData')) || getBaseData();
         renderApp();
     }
@@ -69,16 +76,12 @@ function renderApp() {
         
         totalIngresoL += cantidadL;
         acumuladoKg += consumoKg;
-        let restanteKg = META_TOTAL_KG - acumuladoKg;
         let numeroDia = `Día ${index + 1}`;
         
         tbody.innerHTML += `<tr>
             <td>${numeroDia}</td>
             <td>${item.fecha}</td>
-            <td><input type="number" step="any" id="cant_${index}" value="${cantidadL}" disabled style="width:80px"></td>
-            <td>${consumoKg.toFixed(3)} kg</td>
-            <td>${acumuladoKg.toFixed(3)} kg</td>
-            <td>${restanteKg.toFixed(3)} kg</td>
+            <td><input type="number" step="any" id="cant_${index}" value="${cantidadL}" disabled style="width:100px"></td>
             <td>
                 <button class="btn-edit" id="btnEdit_${index}" onclick="enableEdit(${index})">Modificar</button>
                 <button class="btn-save" id="btnSave_${index}" onclick="saveEdit(${index})">Guardar</button>
@@ -88,10 +91,12 @@ function renderApp() {
     });
 
     let totalConsumoEqKg = totalIngresoL / RATIO_L_POR_KG;
+    let restanteKg = META_TOTAL_KG - totalConsumoEqKg;
 
-    document.getElementById('kpiIngreso').innerText = totalIngresoL.toLocaleString() + " L";
-    document.getElementById('kpiConsumo').innerText = totalConsumoEqKg.toFixed(3) + " kg";
-    document.getElementById('kpiRestante').innerText = (META_TOTAL_KG - totalConsumoEqKg).toFixed(3) + " kg";
+    // Aplicando formato estricto con separadores de punto y 3 decimales en KPIs
+    document.getElementById('kpiIngreso').innerText = formatNumber(totalIngresoL) + " L";
+    document.getElementById('kpiConsumo').innerText = formatNumber(totalConsumoEqKg) + " kg";
+    document.getElementById('kpiRestante').innerText = formatNumber(restanteKg) + " kg";
     
     updateChart();
 }
@@ -163,7 +168,7 @@ function updateChart() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                title: { display: true, text: 'Progreso Acumulado hacia la Meta de 21,981 kg' }
+                title: { display: true, text: 'Progreso Acumulado hacia la Meta de 21.981 kg' }
             }
         }
     });
