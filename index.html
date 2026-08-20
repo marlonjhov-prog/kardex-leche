@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Kardex Avanzado - Google Sheets Sync</title>
+    <title>Panel de Control Kardex - Leche</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 20px; color: #333; max-width: 1200px; margin: auto; }
@@ -11,8 +11,7 @@
         .kpi-container { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
         .kpi-card { background: white; padding: 15px; border-radius: 10px; flex: 1; min-width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; border-left: 5px solid #007bff; }
         
-        /* Contenedor de gráfica con altura controlada para evitar desproporciones */
-        .chart-container { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; height: 320px; }
+        .chart-container { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 320px; }
         
         .form-container { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .form-container input, .form-container button { padding: 8px; margin: 5px; }
@@ -30,34 +29,31 @@
     </style>
 </head>
 <body>
-    <h2>Control de Kardex - Sincronizado con Google Sheets</h2>
+    <h2>Panel de Control - Kardex de Leche</h2>
     
     <div class="kpi-container">
         <div class="kpi-card"><h4>Ingreso Total (L)</h4><p id="kpiIngreso" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
-        <div class="kpi-card"><h4>Consumo Total (kg)</h4><p id="kpiConsumo" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
-        <div class="kpi-card" style="border-left-color: #28a745;"><h4>Restante Actual (kg)</h4><p id="kpiRestante" style="font-size:18px; font-weight:bold; color:#28a745;">0</p></div>
+        <div class="kpi-card"><h4>Consumo Equivalente (kg)</h4><p id="kpiConsumo" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
+        <div class="kpi-card" style="border-left-color: #28a745;"><h4>Restante Meta (kg)</h4><p id="kpiRestante" style="font-size:18px; font-weight:bold; color:#28a745;">0</p></div>
     </div>
 
-    <!-- Gráfica con dimensiones proporcionales y controladas -->
-    <div class="chart-container">
-        <canvas id="kardexChart"></canvas>
+    <div class="chart-container" style="width: 100%; height: 320px;">
+        <canvas id="kardexChart" style="width: 100%; height: 100%;"></canvas>
     </div>
 
     <div class="form-container">
-        <h3>Agregar Nuevo Día de Consumo</h3>
-        <input type="text" id="newDia" placeholder="Ej: Día 18">
+        <h3>Registrar Nuevo Ingreso</h3>
         <input type="date" id="newFecha">
-        <input type="number" id="newIngreso" placeholder="Ingreso (L)">
-        <input type="number" step="0.001" id="newConsumo" placeholder="Consumo (kg)">
+        <input type="number" step="any" id="newCantidad" placeholder="Cantidad (Litros)">
         <button class="btn-add" onclick="addNewItem()">Añadir Registro</button>
     </div>
     
-    <button class="accordion-btn" onclick="toggleTable()">Ver / Ocultar Historial de Días</button>
+    <button class="accordion-btn" onclick="toggleTable()">Historial Registrado</button>
     
     <div id="tableSection" style="display:none; margin-top: 15px;">
         <table>
             <thead>
-                <tr><th>Día</th><th>Fecha</th><th>Ingreso (L)</th><th>Consumo Diario (kg)</th><th>Acumulado (kg)</th><th>Restante (kg)</th><th>Acciones</th></tr>
+                <tr><th>Día</th><th>Fecha</th><th>Cantidad (L)</th><th>Consumo Eq. (kg)</th><th>Acumulado (kg)</th><th>Restante (kg)</th><th>Acciones</th></tr>
             </thead>
             <tbody id="tableBody"></tbody>
         </table>
