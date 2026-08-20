@@ -1,4 +1,4 @@
-const WEB_APP_URL = "PEGAR_AQUÍ_TU_URL_DE_GOOGLE_APPS_SCRIPT";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzm8XTC2EhX6vJVU3rV8WSitS5C8PFPs02dzJ2qb54i4MgTJJnm3AYKZ3-2u0KjREYZ7A/exec";
 const META_TOTAL_KG = 21981; // Meta total en kg de leche en polvo
 const RATIO_L_POR_KG = 9;   // 1 kg = 9 Litros
 
