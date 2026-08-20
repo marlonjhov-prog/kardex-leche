@@ -1,3 +1,4 @@
+// Estructura sincronizada con tus datos base e integración con Google Sheets/Local
 let kardexData = JSON.parse(localStorage.getItem('kardexData')) || [
     { dia: 'Día 1', fecha: '2026-07-21', ingreso: 545, consumo: 278 },
     { dia: 'Día 2', fecha: '2026-07-22', ingreso: 4590, consumo: 169.444 },
@@ -18,25 +19,36 @@ let kardexData = JSON.parse(localStorage.getItem('kardexData')) || [
     { dia: 'Día 17', fecha: '2026-08-19', ingreso: 5585, consumo: 0 }
 ];
 
-const META_TOTAL = 21981; // Meta en kg
+const META_TOTAL = 21981; // Meta en kg de leche en polvo
 
 function renderApp() {
     localStorage.setItem('kardexData', JSON.stringify(kardexData));
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
     
-    let totalIngreso = 0, totalConsumo = 0;
+    let totalIngreso = 0, totalConsumo = 0, acumuladoTemp = 0;
     
     kardexData.forEach((item, index) => {
-        totalIngreso += Number(item.ingreso) || 0;
-        totalConsumo += Number(item.consumo) || 0;
+        let ing = Number(item.ingreso) || 0;
+        let con = Number(item.consumo) || 0;
+        
+        totalIngreso += ing;
+        totalConsumo += con;
+        acumuladoTemp += con;
+        let restanteTemp = META_TOTAL - acumuladoTemp;
         
         tbody.innerHTML += `<tr>
             <td>${item.dia}</td>
             <td>${item.fecha}</td>
-            <td><input type="number" value="${item.ingreso}" onchange="updateValue(${index}, 'ingreso', this.value)" style="width:80px"></td>
-            <td><input type="number" step="0.001" value="${item.consumo}" onchange="updateValue(${index}, 'consumo', this.value)" style="width:80px"></td>
-            <td><button class="btn-delete" onclick="deleteItem(${index})">Eliminar</button></td>
+            <td><input type="number" id="ing_${index}" value="${ing}" disabled style="width:70px"></td>
+            <td><input type="number" step="0.001" id="con_${index}" value="${con}" disabled style="width:70px"></td>
+            <td>${acumuladoTemp.toFixed(3)}</td>
+            <td>${restanteTemp.toFixed(3)}</td>
+            <td>
+                <button class="btn-edit" id="btnEdit_${index}" onclick="enableEdit(${index})">Editar</button>
+                <button class="btn-save" id="btnSave_${index}" onclick="saveEdit(${index})">Guardar</button>
+                <button class="btn-delete" onclick="deleteItem(${index})">Eliminar</button>
+            </td>
         </tr>`;
     });
 
@@ -47,6 +59,23 @@ function renderApp() {
     updateChart();
 }
 
+function enableEdit(index) {
+    document.getElementById(`ing_${index}`).disabled = false;
+    document.getElementById(`con_${index}`).disabled = false;
+    document.getElementById(`btnEdit_${index}`).style.display = 'none';
+    document.getElementById(`btnSave_${index}`).style.display = 'inline-block';
+}
+
+function saveEdit(index) {
+    let newIng = document.getElementById(`ing_${index}`).value;
+    let newCon = document.getElementById(`con_${index}`).value;
+    
+    kardexData[index].ingreso = parseFloat(newIng) || 0;
+    kardexData[index].consumo = parseFloat(newCon) || 0;
+    
+    renderApp();
+}
+
 function addNewItem() {
     const dia = document.getElementById('newDia').value.trim();
     const fecha = document.getElementById('newFecha').value;
@@ -54,23 +83,17 @@ function addNewItem() {
     const consumo = parseFloat(document.getElementById('newConsumo').value) || 0;
 
     if (!dia || !fecha) {
-        alert("Por favor completa al menos el nombre del día y la fecha.");
+        alert("Completa el nombre del día y la fecha.");
         return;
     }
 
     kardexData.push({ dia, fecha, ingreso, consumo });
     
-    // Limpiar campos del formulario
     document.getElementById('newDia').value = '';
     document.getElementById('newFecha').value = '';
     document.getElementById('newIngreso').value = '';
     document.getElementById('newConsumo').value = '';
 
-    renderApp();
-}
-
-function updateValue(index, field, value) {
-    kardexData[index][field] = parseFloat(value) || 0;
     renderApp();
 }
 
@@ -98,8 +121,9 @@ function updateChart() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false, // Evita la desproporción de tamaño
             plugins: {
-                title: { display: true, text: 'Evolución del Consumo de Leche' }
+                title: { display: true, text: 'Evolución del Consumo Diario de Leche' }
             }
         }
     });
