@@ -3,159 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Kardex - Leche</title>
+    <title>Control Kardex - Sincronizado</title>
+    <!-- Incluimos Chart.js para las gráficas y KPIs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f6f9; }
-        h2 { color: #333; }
-        table { width: 100%; border-collapse: collapse; background: white; margin-top: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
-        th { background-color: #007bff; color: white; }
-        button { padding: 6px 12px; margin: 2px; border: none; border-radius: 4px; cursor: pointer; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f4f6f9; color: #333; }
+        h2 { color: #0056b3; text-align: center; margin-bottom: 25px; }
+        
+        /* Contenedor de Métricas / KPIs */
+        .kpi-container { display: flex; justify-content: space-around; gap: 15px; margin-bottom: 25px; flex-wrap: wrap; }
+        .kpi-card { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex: 1; min-width: 200px; text-align: center; border-left: 5px solid #007bff; }
+        .kpi-card h4 { margin: 0; color: #666; font-size: 14px; }
+        .kpi-card p { margin: 10px 0 0; font-size: 22px; font-weight: bold; color: #007bff; }
+
+        /* Estilo Acordeón para la tabla */
+        .accordion { background-color: #007bff; color: white; cursor: pointer; padding: 12px 18px; width: 100%; border: none; text-align: left; outline: none; font-size: 16px; font-weight: bold; border-radius: 6px; transition: 0.3s; margin-top: 20px; }
+        .accordion:hover { background-color: #0056b3; }
+        .panel { padding: 0 15px; display: none; background-color: white; overflow: hidden; border-radius: 0 0 6px 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+
+        /* Tabla */
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; background: white; }
+        th, td { padding: 10px 12px; border: 1px solid #ddd; text-align: center; font-size: 14px; }
+        th { background-color: #f8f9fa; color: #333; }
+        
+        /* Botones */
+        button { padding: 5px 10px; margin: 2px; border: none; border-radius: 4px; cursor: pointer; }
         .btn-edit { background-color: #ffc107; color: #333; }
         .btn-delete { background-color: #dc3545; color: white; }
         button:hover { opacity: 0.8; }
-        #loading { font-weight: bold; color: #007bff; margin-top: 10px; }
+        
+        #loading { text-align: center; font-weight: bold; color: #007bff; margin: 20px; font-size: 16px; }
+
+        /* Contenedor de gráficos */
+        .chart-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto; }
     </style>
 </head>
 <body>
 
-    <h2>Control de Kardex de Leche</h2>
-    <div id="loading">Cargando datos...</div>
+    <h2>Control de Kardex - Sincronizado con Google Sheets</h2>
+    
+    <!-- Indicador de carga -->
+    <div id="loading">Cargando datos y procesando métricas...</div>
 
-    <table id="kardexTable" style="display:none;">
-        <thead>
-            <tr>
-                <th>Día de Consumo</th>
-                <th>Fecha</th>
-                <th>Ingreso (L)</th>
-                <th>Consumo Diario (kg)</th>
-                <th>Acumulado (kg)</th>
-                <th>Restante (kg)</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody">
-            <!-- Los datos se inyectarán aquí dinámicamente -->
-        </tbody>
-    </table>
+    <!-- Sección de KPIs Visuales -->
+    <div class="kpi-container" id="kpiSection" style="display:none;">
+        <div class="kpi-card">
+            <h4>Total Ingresado (L)</h4>
+            <p id="kpiIngreso">0</p>
+        </div>
+        <div class="kpi-card">
+            <h4>Consumo Total (kg)</h4>
+            <p id="kpiConsumo">0</p>
+        </div>
+        <div class="kpi-card" style="border-left-color: #28a745;">
+            <h4>Restante Actual (kg)</h4>
+            <p id="kpiRestante" style="color: #28a745;">0</p>
+        </div>
+    </div>
+
+    <!-- Gráfica de Avance -->
+    <div class="chart-container" id="chartSection" style="display:none;">
+        <canvas id="kardexChart"></canvas>
+    </div>
+
+    <!-- Acordeón para la tabla de registros detallados -->
+    <button class="accordion">Ver Registro Detallado de Días (Tabla)</button>
+    <div class="panel">
+        <table id="kardexTable">
+            <thead>
+                <tr>
+                    <th>Día de Consumo</th>
+                    <th>Fecha</th>
+                    <th>Ingreso (L)</th>
+                    <th>Consumo Diario (kg)</th>
+                    <th>Acumulado (kg)</th>
+                    <th>Restante (kg)</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Se rellena vía app.js -->
+            </tbody>
+        </table>
+    </div>
 
     <script>
-        // ⚠️ PEGA AQUÍ LA URL DE TU APLICACIÓN WEB DE APPS SCRIPT
-        const WEB_APP_URL = "TU_URL_DE_APPS_SCRIPT_AQUI";
-
-        // Función para cargar los datos al iniciar la página
-        function cargarDatosKardex() {
-            document.getElementById("loading").style.display = "block";
-            document.getElementById("kardexTable").style.display = "none";
-
-            fetch(WEB_APP_URL)
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById("tableBody");
-                    tbody.innerHTML = "";
-
-                    // Iteramos sobre los datos recibidos
-                    // Nota: i = 0 en el array JSON corresponde a la fila 2 de Google Sheets
-                    data.forEach((row, index) => {
-                        const rowIndexGoogleSheets = index + 2; // Fila real en la hoja
-
-                        const tr = document.createElement("tr");
-                        tr.innerHTML = `
-                            <td>${row["Dia de Consumo"] || ""}</td>
-                            <td>${row["Fecha"] || ""}</td>
-                            <td>${row["Ingreso (L)"] || ""}</td>
-                            <td>${row["Consumo Diario (kg)"] || ""}</td>
-                            <td>${row["Acumulado (kg)"] || ""}</td>
-                            <td>${row["Restante (kg)"] || ""}</td>
-                            <td>
-                                <button class="btn-edit" onclick="editarFila(${rowIndexGoogleSheets}, '${row["Fecha"] || ""}', '${row["Ingreso (L)"] || ""}', '${row["Consumo Diario (kg)"] || ""}')">Editar</button>
-                                <button class="btn-delete" onclick="eliminarFila(${rowIndexGoogleSheets})">Eliminar</button>
-                            </td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-
-                    document.getElementById("loading").style.display = "none";
-                    document.getElementById("kardexTable").style.display = "table";
-                })
-                .catch(error => {
-                    console.error("Error al cargar los datos:", error);
-                    document.getElementById("loading").innerText = "Error al cargar los datos del Kardex.";
-                });
-        }
-
-        // Función para eliminar un registro automáticamente
-        function eliminarFila(rowIndex) {
-            if (!confirm(`¿Estás seguro de eliminar el registro de la fila ${rowIndex}?`)) return;
-
-            document.getElementById("loading").innerText = "Eliminando registro...";
-            document.getElementById("loading").style.display = "block";
-
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "delete",
-                    rowIndex: rowIndex
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result === "success") {
-                    cargarDatosKardex(); // Recarga la tabla automáticamente
-                } else {
-                    alert("Hubo un error al eliminar.");
-                    document.getElementById("loading").style.display = "none";
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("Error de red al intentar eliminar.");
-                document.getElementById("loading").style.display = "none";
-            });
-        }
-
-        // Función para editar un registro de forma interactiva
-        function editarFila(rowIndex, fechaActual, ingresoActual, consumoActual) {
-            const nuevaFecha = prompt("Modificar Fecha (AAAA-MM-DD):", fechaActual);
-            if (nuevaFecha === null) return; // Si cancela
-
-            const nuevoIngreso = prompt("Modificar Ingreso (L):", ingresoActual);
-            if (nuevoIngreso === null) return;
-
-            const nuevoConsumo = prompt("Modificar Consumo Diario (kg):", consumoActual);
-            if (nuevoConsumo === null) return;
-
-            document.getElementById("loading").innerText = "Actualizando registro...";
-            document.getElementById("loading").style.display = "block";
-
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                body: JSON.stringify({
-                    action: "edit",
-                    rowIndex: rowIndex,
-                    fecha: nuevaFecha,
-                    ingreso: nuevoIngreso,
-                    consumoDiario: nuevoConsumo
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result === "success") {
-                    cargarDatosKardex(); // Refresca la tabla automáticamente con los nuevos cambios
-                } else {
-                    alert("Hubo un error al actualizar.");
-                    document.getElementById("loading").style.display = "none";
-                }
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                alert("Error de red al intentar actualizar.");
-                document.getElementById("loading").style.display = "none";
-            });
-        }
-
-        // Ejecutar al cargar la página
-        window.onload = cargarDatosKardex;
+        // Funcionalidad básica del acordeón
+        const acc = document.querySelector(".accordion");
+        acc.addEventListener("click", function() {
+            this.classList.toggle("active");
+            const panel = this.nextElementSibling;
+            if (panel.style.display === "block") {
+                panel.style.display = "none";
+            } else {
+                panel.style.display = "block";
+            }
+        });
     </script>
+
+    <!-- Vinculamos tu lógica principal -->
+    <script src="app.js"></script>
 </body>
 </html>
