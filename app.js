@@ -1,28 +1,35 @@
-// Estructura sincronizada con tus datos base e integración con Google Sheets/Local
-let kardexData = JSON.parse(localStorage.getItem('kardexData')) || [
-    { dia: 'Día 1', fecha: '2026-07-21', ingreso: 545, consumo: 278 },
-    { dia: 'Día 2', fecha: '2026-07-22', ingreso: 4590, consumo: 169.444 },
-    { dia: 'Día 3', fecha: '2026-07-24', ingreso: 3640, consumo: 27.778 },
-    { dia: 'Día 4', fecha: '2026-07-27', ingreso: 1860, consumo: 166.667 },
-    { dia: 'Día 5', fecha: '2026-07-28', ingreso: 4510, consumo: 277.778 },
-    { dia: 'Día 6', fecha: '2026-07-29', ingreso: 7420, consumo: 0 },
-    { dia: 'Día 7', fecha: '2026-07-30', ingreso: 1825, consumo: 0 },
-    { dia: 'Día 8', fecha: '2026-08-03', ingreso: 3830, consumo: 0 },
-    { dia: 'Día 9', fecha: '2026-08-04', ingreso: 1835, consumo: 0 },
-    { dia: 'Día 10', fecha: '2026-08-05', ingreso: 570, consumo: 0 },
-    { dia: 'Día 11', fecha: '2026-08-07', ingreso: 2750, consumo: 0 },
-    { dia: 'Día 12', fecha: '2026-08-08', ingreso: 1855, consumo: 0 },
-    { dia: 'Día 13', fecha: '2026-08-10', ingreso: 4540, consumo: 0 },
-    { dia: 'Día 14', fecha: '2026-08-11', ingreso: 5410, consumo: 0 },
-    { dia: 'Día 15', fecha: '2026-08-12', ingreso: 5685, consumo: 0 },
-    { dia: 'Día 16', fecha: '2026-08-13', ingreso: 3560, consumo: 0 },
-    { dia: 'Día 17', fecha: '2026-08-19', ingreso: 5585, consumo: 0 }
-];
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxGgCEj3O_jj2AOnxKHBijgyafqkpbelCbOJzAlKJ2riasCBQYF3Y2X4PY_8ZylOR2mTg/exec";
+const META_TOTAL = 21981; 
 
-const META_TOTAL = 21981; // Meta en kg de leche en polvo
+let kardexData = [];
+
+// Cargar datos desde Google Sheets al iniciar la página
+async function loadFromGoogleSheets() {
+    try {
+        let response = await fetch(WEB_APP_URL);
+        kardexData = await response.json();
+        renderApp();
+    } catch (error) {
+        console.error("Error al cargar Google Sheets:", error);
+        alert("No se pudo conectar con Google Sheets.");
+    }
+}
+
+// Guardar cambios directamente en Google Sheets
+async function saveToGoogleSheets() {
+    try {
+        await fetch(WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(kardexData)
+        });
+    } catch (error) {
+        console.error("Error al guardar en Google Sheets:", error);
+    }
+}
 
 function renderApp() {
-    localStorage.setItem('kardexData', JSON.stringify(kardexData));
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
     
@@ -74,6 +81,7 @@ function saveEdit(index) {
     kardexData[index].consumo = parseFloat(newCon) || 0;
     
     renderApp();
+    saveToGoogleSheets(); // Sincroniza con Google Sheets
 }
 
 function addNewItem() {
@@ -95,11 +103,13 @@ function addNewItem() {
     document.getElementById('newConsumo').value = '';
 
     renderApp();
+    saveToGoogleSheets(); // Sincroniza con Google Sheets
 }
 
 function deleteItem(index) {
     kardexData.splice(index, 1);
     renderApp();
+    saveToGoogleSheets(); // Sincroniza con Google Sheets
 }
 
 function updateChart() {
@@ -121,7 +131,7 @@ function updateChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // Evita la desproporción de tamaño
+            maintainAspectRatio: false,
             plugins: {
                 title: { display: true, text: 'Evolución del Consumo Diario de Leche' }
             }
@@ -134,4 +144,5 @@ function toggleTable() {
     s.style.display = s.style.display === 'none' ? 'block' : 'none';
 }
 
-renderApp();
+// Carga inicial al abrir la web
+loadFromGoogleSheets();
