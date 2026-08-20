@@ -1,9 +1,9 @@
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbylJXbGq82dswmKNkLeexP2vQi-k4cm5p34-RU9Pe1hvmMyRhUm_kErhhdXd0jrB6ee5w/exec";
-const META_TOTAL = 21981; 
+const WEB_APP_URL = "PEGAR_AQUÍ_TU_URL_DE_GOOGLE_APPS_SCRIPT";
+const META_TOTAL_KG = 21981; // Meta total en kg de leche en polvo
+const RATIO_L_POR_KG = 9;   // 1 kg = 9 Litros
 
 let kardexData = [];
 
-// Cargar datos desde Google Sheets (con respaldo local)
 async function loadFromGoogleSheets() {
     try {
         let response = await fetch(WEB_APP_URL);
@@ -11,18 +11,16 @@ async function loadFromGoogleSheets() {
         if (Array.isArray(result) && result.length > 0) {
             kardexData = result;
         } else {
-            // Si la hoja está vacía, usamos los datos base
             kardexData = getBaseData();
         }
         renderApp();
     } catch (error) {
-        console.warn("No se pudo conectar a Google Sheets, cargando modo local:", error);
+        console.warn("Cargando desde respaldo local por error de red:", error);
         kardexData = JSON.parse(localStorage.getItem('kardexData')) || getBaseData();
         renderApp();
     }
 }
 
-// Guardar cambios en Google Sheets y en respaldo local
 async function saveToGoogleSheets() {
     localStorage.setItem('kardexData', JSON.stringify(kardexData));
     try {
@@ -39,23 +37,23 @@ async function saveToGoogleSheets() {
 
 function getBaseData() {
     return [
-        { dia: 'Día 1', fecha: '2026-07-21', ingreso: 545, consumo: 278 },
-        { dia: 'Día 2', fecha: '2026-07-22', ingreso: 4590, consumo: 169.444 },
-        { dia: 'Día 3', fecha: '2026-07-24', ingreso: 3640, consumo: 27.778 },
-        { dia: 'Día 4', fecha: '2026-07-27', ingreso: 1860, consumo: 166.667 },
-        { dia: 'Día 5', fecha: '2026-07-28', ingreso: 4510, consumo: 277.778 },
-        { dia: 'Día 6', fecha: '2026-07-29', ingreso: 7420, consumo: 0 },
-        { dia: 'Día 7', fecha: '2026-07-30', ingreso: 1825, consumo: 0 },
-        { dia: 'Día 8', fecha: '2026-08-03', ingreso: 3830, consumo: 0 },
-        { dia: 'Día 9', fecha: '2026-08-04', ingreso: 1835, consumo: 0 },
-        { dia: 'Día 10', fecha: '2026-08-05', ingreso: 570, consumo: 0 },
-        { dia: 'Día 11', fecha: '2026-08-07', ingreso: 2750, consumo: 0 },
-        { dia: 'Día 12', fecha: '2026-08-08', ingreso: 1855, consumo: 0 },
-        { dia: 'Día 13', fecha: '2026-08-10', ingreso: 4540, consumo: 0 },
-        { dia: 'Día 14', fecha: '2026-08-11', ingreso: 5410, consumo: 0 },
-        { dia: 'Día 15', fecha: '2026-08-12', ingreso: 5685, consumo: 0 },
-        { dia: 'Día 16', fecha: '2026-08-13', ingreso: 3560, consumo: 0 },
-        { dia: 'Día 17', fecha: '2026-08-19', ingreso: 5585, consumo: 0 }
+        { fecha: '2026-07-21', cantidad: 545 },
+        { fecha: '2026-07-22', cantidad: 4590 },
+        { fecha: '2026-07-24', cantidad: 3640 },
+        { fecha: '2026-07-27', cantidad: 1860 },
+        { fecha: '2026-07-28', cantidad: 4510 },
+        { fecha: '2026-07-29', cantidad: 7420 },
+        { fecha: '2026-07-30', cantidad: 1825 },
+        { fecha: '2026-08-03', cantidad: 3830 },
+        { fecha: '2026-08-04', cantidad: 1835 },
+        { fecha: '2026-08-05', cantidad: 570 },
+        { fecha: '2026-08-07', cantidad: 2750 },
+        { fecha: '2026-08-08', cantidad: 1855 },
+        { fecha: '2026-08-10', cantidad: 4540 },
+        { fecha: '2026-08-11', cantidad: 5410 },
+        { fecha: '2026-08-12', cantidad: 5685 },
+        { fecha: '2026-08-13', cantidad: 3560 },
+        { fecha: '2026-08-19', cantidad: 5585 }
     ];
 }
 
@@ -63,98 +61,100 @@ function renderApp() {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
     
-    let totalIngreso = 0, totalConsumo = 0, acumuladoTemp = 0;
+    let totalIngresoL = 0, acumuladoKg = 0;
     
     kardexData.forEach((item, index) => {
-        let ing = Number(item.ingreso) || 0;
-        let con = Number(item.consumo) || 0;
+        let cantidadL = Number(item.cantidad) || 0;
+        let consumoKg = cantidadL / RATIO_L_POR_KG;
         
-        totalIngreso += ing;
-        totalConsumo += con;
-        acumuladoTemp += con;
-        let restanteTemp = META_TOTAL - acumuladoTemp;
+        totalIngresoL += cantidadL;
+        acumuladoKg += consumoKg;
+        let restanteKg = META_TOTAL_KG - acumuladoKg;
+        let numeroDia = `Día ${index + 1}`; // Día generado internamente
         
         tbody.innerHTML += `<tr>
-            <td>${item.dia}</td>
+            <td>${numeroDia}</td>
             <td>${item.fecha}</td>
-            <td><input type="number" id="ing_${index}" value="${ing}" disabled style="width:70px"></td>
-            <td><input type="number" step="0.001" id="con_${index}" value="${con}" disabled style="width:70px"></td>
-            <td>${acumuladoTemp.toFixed(3)}</td>
-            <td>${restanteTemp.toFixed(3)}</td>
+            <td><input type="number" step="any" id="cant_${index}" value="${cantidadL}" disabled style="width:80px"></td>
+            <td>${consumoKg.toFixed(3)} kg</td>
+            <td>${acumuladoKg.toFixed(3)} kg</td>
+            <td>${restanteKg.toFixed(3)} kg</td>
             <td>
-                <button class="btn-edit" id="btnEdit_${index}" onclick="enableEdit(${index})">Editar</button>
+                <button class="btn-edit" id="btnEdit_${index}" onclick="enableEdit(${index})">Modificar</button>
                 <button class="btn-save" id="btnSave_${index}" onclick="saveEdit(${index})">Guardar</button>
                 <button class="btn-delete" onclick="deleteItem(${index})">Eliminar</button>
             </td>
         </tr>`;
     });
 
-    document.getElementById('kpiIngreso').innerText = totalIngreso.toLocaleString() + " L";
-    document.getElementById('kpiConsumo').innerText = totalConsumo.toFixed(3) + " kg";
-    document.getElementById('kpiRestante').innerText = (META_TOTAL - totalConsumo).toFixed(3) + " kg";
+    let totalConsumoEqKg = totalIngresoL / RATIO_L_POR_KG;
+
+    document.getElementById('kpiIngreso').innerText = totalIngresoL.toLocaleString() + " L";
+    document.getElementById('kpiConsumo').innerText = totalConsumoEqKg.toFixed(3) + " kg";
+    document.getElementById('kpiRestante').innerText = (META_TOTAL_KG - totalConsumoEqKg).toFixed(3) + " kg";
     
     updateChart();
 }
 
 function enableEdit(index) {
-    document.getElementById(`ing_${index}`).disabled = false;
-    document.getElementById(`con_${index}`).disabled = false;
+    document.getElementById(`cant_${index}`).disabled = false;
     document.getElementById(`btnEdit_${index}`).style.display = 'none';
     document.getElementById(`btnSave_${index}`).style.display = 'inline-block';
 }
 
 function saveEdit(index) {
-    let newIng = document.getElementById(`ing_${index}`).value;
-    let newCon = document.getElementById(`con_${index}`).value;
-    
-    kardexData[index].ingreso = parseFloat(newIng) || 0;
-    kardexData[index].consumo = parseFloat(newCon) || 0;
+    let nuevaCantidad = document.getElementById(`cant_${index}`).value;
+    kardexData[index].cantidad = parseFloat(nuevaCantidad) || 0;
     
     renderApp();
     saveToGoogleSheets();
 }
 
 function addNewItem() {
-    const dia = document.getElementById('newDia').value.trim();
     const fecha = document.getElementById('newFecha').value;
-    const ingreso = parseFloat(document.getElementById('newIngreso').value) || 0;
-    const consumo = parseFloat(document.getElementById('newConsumo').value) || 0;
+    const cantidad = parseFloat(document.getElementById('newCantidad').value) || 0;
 
-    if (!dia || !fecha) {
-        alert("Completa el nombre del día y la fecha.");
+    if (!fecha) {
+        alert("Por favor selecciona una fecha.");
         return;
     }
 
-    kardexData.push({ dia, fecha, ingreso, consumo });
+    kardexData.push({ fecha, cantidad });
     
-    document.getElementById('newDia').value = '';
     document.getElementById('newFecha').value = '';
-    document.getElementById('newIngreso').value = '';
-    document.getElementById('newConsumo').value = '';
+    document.getElementById('newCantidad').value = '';
 
     renderApp();
     saveToGoogleSheets();
 }
 
 function deleteItem(index) {
-    kardexData.splice(index, 1);
-    renderApp();
-    saveToGoogleSheets();
+    if (confirm("¿Estás seguro de eliminar este registro?")) {
+        kardexData.splice(index, 1);
+        renderApp();
+        saveToGoogleSheets();
+    }
 }
 
 function updateChart() {
     const ctx = document.getElementById('kardexChart').getContext('2d');
     if(window.myChart) window.myChart.destroy();
     
+    let acumuladoTemp = 0;
+    let datosGrafica = kardexData.map((i, idx) => {
+        acumuladoTemp += (Number(i.cantidad) || 0) / RATIO_L_POR_KG;
+        return { dia: `Día ${idx + 1}`, acumulado: acumuladoTemp };
+    });
+
     window.myChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: kardexData.map(i => i.dia),
+            labels: datosGrafica.map(i => i.dia),
             datasets: [{
-                label: 'Consumo Diario (kg)',
-                data: kardexData.map(i => i.consumo),
-                borderColor: '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                label: 'Avance Acumulado (kg)',
+                data: datosGrafica.map(i => i.acumulado),
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
                 fill: true,
                 tension: 0.1
             }]
@@ -163,7 +163,7 @@ function updateChart() {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                title: { display: true, text: 'Evolución del Consumo Diario de Leche' }
+                title: { display: true, text: 'Progreso Acumulado hacia la Meta de 21,981 kg' }
             }
         }
     });
@@ -174,5 +174,4 @@ function toggleTable() {
     s.style.display = s.style.display === 'none' ? 'block' : 'none';
 }
 
-// Iniciar aplicación
 loadFromGoogleSheets();
