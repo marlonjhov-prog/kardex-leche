@@ -31,6 +31,7 @@
     <h2>Panel Base de Datos - Kardex de Leche</h2>
     <div id="syncStatus">Conectando a la base de datos en Google Sheets...</div>
     
+    <!-- 4 TARJETAS KPI -->
     <div class="kpi-container">
         <div class="kpi-card" style="border-left-color: #6c757d;"><h4>Meta a Cumplir</h4><p id="kpiMeta" style="font-size:18px; font-weight:bold; color:#6c757d;">0</p></div>
         <div class="kpi-card"><h4>Ingreso Total (L)</h4><p id="kpiIngreso" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
@@ -38,6 +39,7 @@
         <div class="kpi-card" style="border-left-color: #28a745;"><h4>Restante Meta (kg)</h4><p id="kpiRestante" style="font-size:18px; font-weight:bold; color:#28a745;">0</p></div>
     </div>
 
+    <!-- FILA DE GRÁFICAS -->
     <div class="charts-row">
         <div class="chart-container">
             <canvas id="kardexChart"></canvas>
@@ -197,7 +199,6 @@
         }
 
         function updateCharts(totalConsumoEqKg) {
-            // Gráfica de Líneas Acumuladas + Línea de Meta Fija
             const ctxLine = document.getElementById('kardexChart').getContext('2d');
             if(myChart) myChart.destroy();
             
@@ -253,19 +254,17 @@
                 }
             });
 
-            // Gráfica de Velocímetro con Color Dinámico
             const ctxGauge = document.getElementById('gaugeChart').getContext('2d');
             if(gaugeChart) gaugeChart.destroy();
 
             let porcentaje = Math.min(100, (totalConsumoEqKg / META_TOTAL_KG) * 100);
             let restantePorcentaje = 100 - porcentaje;
 
-            // Selección de color dinámica según el porcentaje alcanzado
-            let colorProgreso = '#007bff'; // Azul por defecto (< 40%)
+            let colorProgreso = '#007bff'; // Azul (< 40%)
             if (porcentaje >= 80) {
-                colorProgreso = '#28a745'; // Verde elegante (> 80%)
+                colorProgreso = '#28a745'; // Verde (>= 80%)
             } else if (porcentaje >= 40) {
-                colorProgreso = '#ffc107'; // Amarillo/Naranja de advertencia (40% - 79%)
+                colorProgreso = '#ffc107'; // Naranja/Amarillo (Entre 40% y 79.9%)
             }
 
             const gaugeTextEl = document.getElementById('gaugeText');
