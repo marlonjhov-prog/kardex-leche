@@ -1,4 +1,4 @@
-const WEB_APP_URL = "https://script.google.com/macros/library/d/1VtLjA70dBLuuEU89evI7z6BSiRiz3pCV1DM6AUfkeQl8T_Aq_mqx4B-y/6";
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxAZRLOt23Skic-7h9B3w7nVq99N3uIXfrReVofPyNVu8t9BLQuu2unMNHsKzLrFFhF7Q/exec";
 const META_TOTAL_KG = 21981; 
 const RATIO_L_POR_KG = 9;   
 
