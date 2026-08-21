@@ -29,7 +29,7 @@
 </head>
 <body>
     <h2>Panel Base de Datos - Kardex de Leche</h2>
-    <div id="syncStatus">Conectando a la base de datos en Google Sheets...</div>
+    <div id="syncStatus">Conectando a la base de datos...</div>
     
     <!-- 4 TARJETAS KPI -->
     <div class="kpi-container">
@@ -103,7 +103,7 @@
         }
 
         async function saveToGoogleSheets() {
-            document.getElementById('syncStatus').innerText = "Sincronizando con Google Sheets...";
+            document.getElementById('syncStatus').innerText = "Sincronizando con la base de datos...";
             document.getElementById('syncStatus').style.color = "orange";
 
             try {
