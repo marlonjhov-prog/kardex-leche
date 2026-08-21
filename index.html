@@ -22,10 +22,12 @@
         .btn-save { background: #17a2b8; color: white; display: none; }
         .btn-delete { background: #dc3545; color: white; }
         .accordion-btn { background: #007bff; color: white; padding: 10px 15px; border-radius: 5px; font-weight: bold; width: 100%; text-align: left; cursor: pointer; border: none; }
+        #syncStatus { text-align: center; font-size: 12px; margin-bottom: 10px; color: #666; }
     </style>
 </head>
 <body>
     <h2>Panel de Control - Kardex de Leche</h2>
+    <div id="syncStatus">Conectando con Google Sheets...</div>
     
     <div class="kpi-container">
         <div class="kpi-card"><h4>Ingreso Total (L)</h4><p id="kpiIngreso" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
@@ -55,8 +57,10 @@
         </table>
     </div>
 
+    <!-- Iframe oculto para recibir la sincronización sin bloqueos CORS -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
     <script>
-        // Tu URL de Google Apps Script configurada
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZrjjen_BaUte8ez3w8184M9v-Igu0XXosQLjMZwRwlev-OmkwECos-PrwwrGjY6E2HQ/exec";
         
         const META_TOTAL_KG = 21981; 
@@ -68,43 +72,65 @@
             return num.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
         }
 
-        async function loadFromGoogleSheets() {
-            try {
-                let response = await fetch(WEB_APP_URL);
-                let result = await response.json();
-                if (Array.isArray(result) && result.length > 0) {
-                    kardexData = result;
-                } else {
-                    kardexData = getBaseData();
-                    saveToGoogleSheets();
-                }
-                renderApp();
-            } catch (error) {
-                console.warn("Cargando desde respaldo local:", error);
-                kardexData = JSON.parse(localStorage.getItem('kardexData')) || getBaseData();
-                renderApp();
-            }
+        // Carga mediante JSONP dinámico para saltar restricciones de GitHub Pages
+        function loadFromGoogleSheets() {
+            document.getElementById('syncStatus').innerText = "Sincronizando datos desde Google Sheets...";
+            let script = document.createElement('script');
+            script.src = `${WEB_APP_URL}?callback=processLoadedData`;
+            script.onerror = function() {
+                console.warn("Error de red cargando de Sheets, usando respaldo local.");
+                loadFromLocal();
+            };
+            document.body.appendChild(script);
         }
 
-        // Sincronización optimizada para GitHub Pages mediante POST con redirección
-        async function saveToGoogleSheets() {
+        window.processLoadedData = function(result) {
+            if (Array.isArray(result) && result.length > 0) {
+                kardexData = result;
+                document.getElementById('syncStatus').innerText = "✔ Sincronizado correctamente con Google Sheets";
+                document.getElementById('syncStatus').style.color = "green";
+            } else {
+                kardexData = getBaseData();
+                saveToGoogleSheets();
+            }
+            renderApp();
+        };
+
+        function loadFromLocal() {
+            kardexData = JSON.parse(localStorage.getItem('kardexData')) || getBaseData();
+            document.getElementById('syncStatus').innerText = "⚠ Usando modo local (Verifica conexión)";
+            document.getElementById('syncStatus').style.color = "orange";
+            renderApp();
+        }
+
+        // Envío infalible por formulario oculto vía GET/POST a través de Iframe
+        function saveToGoogleSheets() {
             if (!Array.isArray(kardexData) || kardexData.length === 0) return;
             
             localStorage.setItem('kardexData', JSON.stringify(kardexData));
+            document.getElementById('syncStatus').innerText = "Guardando cambios en Google Sheets...";
 
-            try {
-                await fetch(WEB_APP_URL, {
-                    method: "POST",
-                    redirect: "follow",
-                    headers: {
-                        "Content-Type": "text/plain;charset=utf-8",
-                    },
-                    body: JSON.stringify(kardexData)
-                });
-                console.log("Sincronizado con Google Sheets correctamente desde GitHub.");
-            } catch (error) {
-                console.error("Error al sincronizar con Google Sheets:", error);
-            }
+            let jsonData = encodeURIComponent(JSON.stringify(kardexData));
+
+            let form = document.createElement('form');
+            form.action = WEB_APP_URL;
+            form.method = 'GET';
+            form.target = 'hidden_iframe';
+
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'payload';
+            input.value = jsonData;
+
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+
+            setTimeout(() => {
+                document.getElementById('syncStatus').innerText = "✔ Cambios guardados en Google Sheets";
+                document.getElementById('syncStatus').style.color = "green";
+            }, 1000);
         }
 
         function getBaseData() {
