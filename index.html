@@ -55,11 +55,8 @@
         </table>
     </div>
 
-    <!-- Iframe oculto para sincronizar sin errores de CORS -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
-
     <script>
-        // Tu URL de Apps Script conectada
+        // Tu URL de Google Apps Script configurada
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZrjjen_BaUte8ez3w8184M9v-Igu0XXosQLjMZwRwlev-OmkwECos-PrwwrGjY6E2HQ/exec";
         
         const META_TOTAL_KG = 21981; 
@@ -89,32 +86,25 @@
             }
         }
 
-        // Método infalible mediante formulario oculto para saltar restricciones CORS
-        function saveToGoogleSheets() {
+        // Sincronización optimizada para GitHub Pages mediante POST con redirección
+        async function saveToGoogleSheets() {
             if (!Array.isArray(kardexData) || kardexData.length === 0) return;
             
-            // Siempre guardamos en local por seguridad
             localStorage.setItem('kardexData', JSON.stringify(kardexData));
 
-            let jsonData = encodeURIComponent(JSON.stringify(kardexData));
-
-            // Creamos un formulario temporal invisible para enviar los datos como GET
-            let form = document.createElement('form');
-            form.action = WEB_APP_URL;
-            form.method = 'GET';
-            form.target = 'hidden_iframe'; // Lo envía al iframe invisible para que la página no se recargue
-
-            let input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'payload';
-            input.value = jsonData;
-
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-            
-            console.log("Datos enviados a Google Sheets mediante iframe.");
+            try {
+                await fetch(WEB_APP_URL, {
+                    method: "POST",
+                    redirect: "follow",
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8",
+                    },
+                    body: JSON.stringify(kardexData)
+                });
+                console.log("Sincronizado con Google Sheets correctamente desde GitHub.");
+            } catch (error) {
+                console.error("Error al sincronizar con Google Sheets:", error);
+            }
         }
 
         function getBaseData() {
