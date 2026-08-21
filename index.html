@@ -91,12 +91,12 @@
                 let result = await response.json();
                 if (Array.isArray(result)) {
                     kardexData = result;
-                    document.getElementById('syncStatus').innerText = `✔ Conectado a Google Sheets (${kardexData.length} registros)`;
+                    document.getElementById('syncStatus').innerText = `✔ Conectado satisfactoriamente. (${kardexData.length} registros)`;
                     document.getElementById('syncStatus').style.color = "green";
                 }
                 renderApp();
             } catch (error) {
-                document.getElementById('syncStatus').innerText = "❌ Error al conectar con Google Sheets.";
+                document.getElementById('syncStatus').innerText = "❌ Error al conectar.";
                 document.getElementById('syncStatus').style.color = "red";
                 renderApp();
             }
