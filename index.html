@@ -84,16 +84,14 @@
             }
         }
 
+        // Método actualizado con parámetros GET para evitar bloqueos de CORS
         async function saveToGoogleSheets() {
             if (!Array.isArray(kardexData) || kardexData.length === 0) return;
             localStorage.setItem('kardexData', JSON.stringify(kardexData));
             try {
-                await fetch(WEB_APP_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify(kardexData)
-                });
+                let jsonData = encodeURIComponent(JSON.stringify(kardexData));
+                await fetch(`${WEB_APP_URL}?data=${jsonData}`);
+                console.log("Sincronizado con Google Sheets correctamente");
             } catch (error) {
                 console.error("Error al sincronizar con Google Sheets:", error);
             }
