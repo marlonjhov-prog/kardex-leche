@@ -31,7 +31,6 @@
     <h2>Panel Base de Datos - Kardex de Leche</h2>
     <div id="syncStatus">Conectando a la base de datos en Google Sheets...</div>
     
-    <!-- 4 TARJETAS KPI -->
     <div class="kpi-container">
         <div class="kpi-card" style="border-left-color: #6c757d;"><h4>Meta a Cumplir</h4><p id="kpiMeta" style="font-size:18px; font-weight:bold; color:#6c757d;">0</p></div>
         <div class="kpi-card"><h4>Ingreso Total (L)</h4><p id="kpiIngreso" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
@@ -39,7 +38,6 @@
         <div class="kpi-card" style="border-left-color: #28a745;"><h4>Restante Meta (kg)</h4><p id="kpiRestante" style="font-size:18px; font-weight:bold; color:#28a745;">0</p></div>
     </div>
 
-    <!-- FILA DE GRÁFICAS -->
     <div class="charts-row">
         <div class="chart-container">
             <canvas id="kardexChart"></canvas>
@@ -49,7 +47,7 @@
             <div style="position: relative; height: 220px; width: 100%;">
                 <canvas id="gaugeChart"></canvas>
             </div>
-            <p id="gaugeText" style="margin:0; font-weight:bold; color:#28a745; font-size: 14px;">0% completado</p>
+            <p id="gaugeText" style="margin:0; font-weight:bold; color:#007bff; font-size: 14px;">0% completado</p>
         </div>
     </div>
 
@@ -151,7 +149,6 @@
             let totalConsumoEqKg = totalIngresoL / RATIO_L_POR_KG;
             let restanteKg = Math.max(0, META_TOTAL_KG - totalConsumoEqKg);
 
-            // Actualizar tarjetas KPI incluyendo la Meta Fija
             document.getElementById('kpiMeta').innerText = formatKPI(META_TOTAL_KG) + " kg";
             document.getElementById('kpiIngreso').innerText = formatKPI(totalIngresoL) + " L";
             document.getElementById('kpiConsumo').innerText = formatKPI(totalConsumoEqKg) + " kg";
@@ -214,10 +211,9 @@
                 acumuladoTemp += cantClean / RATIO_L_POR_KG;
                 labelsArray.push(`Día ${idx + 1}`);
                 datosAcumulados.push(acumuladoTemp);
-                datosMetaFija.push(META_TOTAL_KG); // Rellena la línea recta de la meta
+                datosMetaFija.push(META_TOTAL_KG);
             });
 
-            // Si no hay datos, mostramos al menos una etiqueta vacía para que no falle la gráfica
             if(labelsArray.length === 0) {
                 labelsArray = ['Día 1'];
                 datosAcumulados = [0];
@@ -241,7 +237,7 @@
                             label: 'Meta Objetivo (21.981 kg)',
                             data: datosMetaFija,
                             borderColor: '#dc3545',
-                            borderDash: [5, 5], // Línea punteada elegante para la meta
+                            borderDash: [5, 5],
                             borderWidth: 2,
                             fill: false,
                             pointRadius: 0
@@ -257,14 +253,24 @@
                 }
             });
 
-            // Gráfica de Velocímetro (Semicírculo)
+            // Gráfica de Velocímetro con Color Dinámico
             const ctxGauge = document.getElementById('gaugeChart').getContext('2d');
             if(gaugeChart) gaugeChart.destroy();
 
             let porcentaje = Math.min(100, (totalConsumoEqKg / META_TOTAL_KG) * 100);
             let restantePorcentaje = 100 - porcentaje;
 
-            document.getElementById('gaugeText').innerText = `${porcentaje.toFixed(2)}% completado`;
+            // Selección de color dinámica según el porcentaje alcanzado
+            let colorProgreso = '#007bff'; // Azul por defecto (< 40%)
+            if (porcentaje >= 80) {
+                colorProgreso = '#28a745'; // Verde elegante (> 80%)
+            } else if (porcentaje >= 40) {
+                colorProgreso = '#ffc107'; // Amarillo/Naranja de advertencia (40% - 79%)
+            }
+
+            const gaugeTextEl = document.getElementById('gaugeText');
+            gaugeTextEl.innerText = `${porcentaje.toFixed(2)}% completado`;
+            gaugeTextEl.style.color = colorProgreso;
 
             gaugeChart = new Chart(ctxGauge, {
                 type: 'doughnut',
@@ -272,7 +278,7 @@
                     labels: ['Consumido', 'Restante'],
                     datasets: [{
                         data: [porcentaje, restantePorcentaje],
-                        backgroundColor: ['#28a745', '#e9ecef'],
+                        backgroundColor: [colorProgreso, '#e9ecef'],
                         borderWidth: 0
                     }]
                 },
