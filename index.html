@@ -173,7 +173,9 @@
         }
 
         function addNewItem() {
-            const fecha = document.getElementById('newFecha').value;
+            let fechaRaw = document.getElementById('newFecha').value;
+            // Limpiamos la fecha para extraer estrictamente YYYY-MM-DD y evitar la hora UTC
+            const fecha = fechaRaw ? fechaRaw.split('T')[0] : '';
             const cantidad = parseFloat(document.getElementById('newCantidad').value) || 0;
 
             if (!fecha || isNaN(cantidad)) {
