@@ -8,8 +8,8 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 20px; color: #333; max-width: 1200px; margin: auto; }
         h2 { text-align: center; color: #0056b3; }
-        .kpi-container { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-        .kpi-card { background: white; padding: 15px; border-radius: 10px; flex: 1; min-width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; border-left: 5px solid #007bff; }
+        .kpi-container { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .kpi-card { background: white; padding: 15px; border-radius: 10px; flex: 1; min-width: 180px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; border-left: 5px solid #007bff; }
         .charts-row { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
         .chart-container { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 320px; flex: 2; min-width: 300px; }
         .gauge-container { background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 320px; flex: 1; min-width: 250px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; }
@@ -31,13 +31,15 @@
     <h2>Panel Base de Datos - Kardex de Leche</h2>
     <div id="syncStatus">Conectando a la base de datos en Google Sheets...</div>
     
+    <!-- 4 TARJETAS KPI -->
     <div class="kpi-container">
+        <div class="kpi-card" style="border-left-color: #6c757d;"><h4>Meta a Cumplir</h4><p id="kpiMeta" style="font-size:18px; font-weight:bold; color:#6c757d;">0</p></div>
         <div class="kpi-card"><h4>Ingreso Total (L)</h4><p id="kpiIngreso" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
         <div class="kpi-card"><h4>Consumo Equivalente (kg)</h4><p id="kpiConsumo" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
         <div class="kpi-card" style="border-left-color: #28a745;"><h4>Restante Meta (kg)</h4><p id="kpiRestante" style="font-size:18px; font-weight:bold; color:#28a745;">0</p></div>
     </div>
 
-    <!-- FILA QUE CONTIENE AMBAS GRÁFICAS: LÍNEAS + VELOCÍMETRO -->
+    <!-- FILA DE GRÁFICAS -->
     <div class="charts-row">
         <div class="chart-container">
             <canvas id="kardexChart"></canvas>
@@ -149,6 +151,8 @@
             let totalConsumoEqKg = totalIngresoL / RATIO_L_POR_KG;
             let restanteKg = Math.max(0, META_TOTAL_KG - totalConsumoEqKg);
 
+            // Actualizar tarjetas KPI incluyendo la Meta Fija
+            document.getElementById('kpiMeta').innerText = formatKPI(META_TOTAL_KG) + " kg";
             document.getElementById('kpiIngreso').innerText = formatKPI(totalIngresoL) + " L";
             document.getElementById('kpiConsumo').innerText = formatKPI(totalConsumoEqKg) + " kg";
             document.getElementById('kpiRestante').innerText = formatKPI(restanteKg) + " kg";
@@ -196,35 +200,59 @@
         }
 
         function updateCharts(totalConsumoEqKg) {
-            // Gráfica de Líneas Acumuladas
+            // Gráfica de Líneas Acumuladas + Línea de Meta Fija
             const ctxLine = document.getElementById('kardexChart').getContext('2d');
             if(myChart) myChart.destroy();
             
             let acumuladoTemp = 0;
-            let datosGrafica = kardexData.map((i, idx) => {
+            let labelsArray = [];
+            let datosAcumulados = [];
+            let datosMetaFija = [];
+
+            kardexData.forEach((i, idx) => {
                 let cantClean = Number(String(i.cantidad).replace(/'/g, '')) || 0;
                 acumuladoTemp += cantClean / RATIO_L_POR_KG;
-                return { dia: `Día ${idx + 1}`, acumulado: acumuladoTemp };
+                labelsArray.push(`Día ${idx + 1}`);
+                datosAcumulados.push(acumuladoTemp);
+                datosMetaFija.push(META_TOTAL_KG); // Rellena la línea recta de la meta
             });
+
+            // Si no hay datos, mostramos al menos una etiqueta vacía para que no falle la gráfica
+            if(labelsArray.length === 0) {
+                labelsArray = ['Día 1'];
+                datosAcumulados = [0];
+                datosMetaFija = [META_TOTAL_KG];
+            }
 
             myChart = new Chart(ctxLine, {
                 type: 'line',
                 data: {
-                    labels: datosGrafica.map(i => i.dia),
-                    datasets: [{
-                        label: 'Avance Acumulado (kg)',
-                        data: datosGrafica.map(i => i.acumulado),
-                        borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        fill: true,
-                        tension: 0.1
-                    }]
+                    labels: labelsArray,
+                    datasets: [
+                        {
+                            label: 'Avance Acumulado (kg)',
+                            data: datosAcumulados,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Meta Objetivo (21.981 kg)',
+                            data: datosMetaFija,
+                            borderColor: '#dc3545',
+                            borderDash: [5, 5], // Línea punteada elegante para la meta
+                            borderWidth: 2,
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        title: { display: true, text: 'Progreso Acumulado hacia la Meta' }
+                        title: { display: true, text: 'Progreso Diario vs Línea de Meta (kg)' }
                     }
                 }
             });
