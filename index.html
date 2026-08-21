@@ -1,249 +1,56 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base de Datos Kardex - Leche</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; padding: 20px; color: #333; max-width: 1200px; margin: auto; }
-        h2 { text-align: center; color: #0056b3; }
-        .kpi-container { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
-        .kpi-card { background: white; padding: 15px; border-radius: 10px; flex: 1; min-width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; border-left: 5px solid #007bff; }
-        .chart-container { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); height: 320px; width: 100%; }
-        .form-container { background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .form-container input, .form-container button { padding: 8px; margin: 5px; }
-        .btn-add { background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: center; font-size: 13px; }
-        th { background-color: #f8f9fa; }
-        button { padding: 5px 10px; border: none; border-radius: 4px; cursor: pointer; }
-        .btn-edit { background: #ffc107; color: #333; }
-        .btn-save { background: #17a2b8; color: white; display: none; }
-        .btn-delete { background: #dc3545; color: white; }
-        .accordion-btn { background: #007bff; color: white; padding: 10px 15px; border-radius: 5px; font-weight: bold; width: 100%; text-align: left; cursor: pointer; border: none; }
-        #syncStatus { text-align: center; font-size: 13px; margin-bottom: 15px; font-weight: bold; color: #0056b3; }
-    </style>
+    <title>Kardex Leche</title>
 </head>
 <body>
-    <h2>Panel Base de Datos - Kardex de Leche</h2>
-    <div id="syncStatus">Conectando a la base de datos en Google Sheets...</div>
-    
-    <div class="kpi-container">
-        <div class="kpi-card"><h4>Ingreso Total (L)</h4><p id="kpiIngreso" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
-        <div class="kpi-card"><h4>Consumo Equivalente (kg)</h4><p id="kpiConsumo" style="font-size:18px; font-weight:bold; color:#007bff;">0</p></div>
-        <div class="kpi-card" style="border-left-color: #28a745;"><h4>Restante Meta (kg)</h4><p id="kpiRestante" style="font-size:18px; font-weight:bold; color:#28a745;">0</p></div>
+    <h2>Kardex de Leche</h2>
+    <div id="status">Cargando...</div>
+    <div id="app">
+        <input type="date" id="f">
+        <input type="number" id="c">
+        <button onclick="guardar()">Guardar</button>
+        <ul id="lista"></ul>
     </div>
-
-    <div class="chart-container">
-        <canvas id="kardexChart" style="width: 100%; height: 100%;"></canvas>
-    </div>
-
-    <div class="form-container">
-        <h3>Registrar Nuevo Ingreso a la Base de Datos</h3>
-        <input type="date" id="newFecha">
-        <input type="number" step="any" id="newCantidad" placeholder="Cantidad (Litros)">
-        <button class="btn-add" onclick="addNewItem()">Guardar en Google Sheets</button>
-    </div>
-    
-    <button class="accordion-btn" onclick="toggleTable()">Historial Registrado en la Nube</button>
-    
-    <div id="tableSection" style="display:none; margin-top: 15px;">
-        <table>
-            <thead>
-                <tr><th>Día</th><th>Fecha</th><th>Cantidad (L)</th><th>Acciones</th></tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
-        </table>
-    </div>
-
-    <!-- Iframe oculto para guardar datos sin bloqueo de CORS -->
-    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxZrjjen_BaUte8ez3w8184M9v-Igu0XXosQLjMZwRwlev-OmkwECos-PrwwrGjY6E2HQ/exec";
-        
-        const META_TOTAL_KG = 21981; 
-        const RATIO_L_POR_KG = 9;   
+        const URL = "TU_URL_AQUI"; // PEGA TU URL DE APPS SCRIPT AQUÍ
+        let datos = [];
 
-        let kardexData = [];
-
-        function formatKPI(num) {
-            return num.toLocaleString('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-        }
-
-        // Carga estricta desde Google Sheets (JSONP)
-        function loadFromGoogleSheets() {
-            document.getElementById('syncStatusinnerText = "Consultando Google Sheets..."';
-            let script = document.createElement('script');
-            script.src = `${WEB_APP_URL}?callback=processCloudData`;
-            script.onerror = function() {
-                document.getElementById('syncStatus').innerText = "❌ Error: No se pudo conectar con Google Sheets.";
-                document.getElementById('syncStatus').style.color = "red";
-            };
-            document.body.appendChild(script);
-        }
-
-        window.processCloudData = function(result) {
-            if (Array.isArray(result)) {
-                kardexData = result; // Si está vacía en Sheets, será un arreglo de 0 elementos []
-                document.getElementById('syncStatus').innerText = `✔ Conectado a Google Sheets (${kardexData.length} registros cargados)`;
-                document.getElementById('syncStatus').style.color = "green";
-            } else {
-                kardexData = [];
-                document.getElementById('syncStatus').innerText = "⚠ La base de datos en Google Sheets está vacía.";
-                document.getElementById('syncStatus').style.color = "orange";
+        async function cargar() {
+            try {
+                let res = await fetch(URL);
+                datos = await res.json();
+                render();
+                document.getElementById('status').innerText = "Conectado";
+            } catch(e) {
+                document.getElementById('status').innerText = "Error de conexión";
             }
-            renderApp();
-        };
-
-        // Guardado directo a Google Sheets mediante formulario invisible (Infalible)
-        function saveToGoogleSheets() {
-            if (!Array.isArray(kardexData)) return;
-            
-            document.getElementById('syncStatus').innerText = "Sincronizando cambios con Google Sheets...";
-            document.getElementById('syncStatus').style.color = "orange";
-
-            let jsonData = encodeURIComponent(JSON.stringify(kardexData));
-
-            let form = document.createElement('form');
-            form.action = WEB_APP_URL;
-            form.method = 'GET';
-            form.target = 'hidden_iframe';
-
-            let input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'payload';
-            input.value = jsonData;
-
-            form.appendChild(input);
-            document.body.appendChild(form);
-            form.submit();
-            document.body.removeChild(form);
-
-            setTimeout(() => {
-                document.getElementById('syncStatus').innerText = `✔ Base de datos actualizada en Google Sheets (${kardexData.length} registros)`;
-                document.getElementById('syncStatus').style.color = "green";
-            }, 1200);
         }
 
-        function renderApp() {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
+        async function guardar() {
+            let n = { fecha: document.getElementById('f').value, cantidad: document.getElementById('c').value };
+            datos.push(n);
             
-            let totalIngresoL = 0;
+            document.getElementById('status').innerText = "Guardando...";
             
-            if (kardexData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="color:#777; padding:15px;">No hay registros en la base de datos todavía. Añade el primero arriba.</td></tr>`;
-            }
-
-            kardexData.forEach((item, index) => {
-                let cantidadL = Number(item.cantidad) || 0;
-                totalIngresoL += cantidadL;
-                let numeroDia = `Día ${index + 1}`;
-                
-                tbody.innerHTML += `<tr>
-                    <td>${numeroDia}</td>
-                    <td>${item.fecha}</td>
-                    <td><input type="number" step="any" id="cant_${index}" value="${cantidadL}" disabled style="width:100px"></td>
-                    <td>
-                        <button class="btn-edit" id="btnEdit_${index}" onclick="enableEdit(${index})">Modificar</button>
-                        <button class="btn-save" id="btnSave_${index}" onclick="saveEdit(${index})">Guardar</button>
-                        <button class="btn-delete" onclick="deleteItem(${index})">Eliminar</button>
-                    </td>
-                </tr>`;
+            await fetch(URL, {
+                method: "POST",
+                mode: "no-cors", 
+                body: JSON.stringify(datos)
             });
-
-            let totalConsumoEqKg = totalIngresoL / RATIO_L_POR_KG;
-            let restanteKg = META_TOTAL_KG - totalConsumoEqKg;
-
-            document.getElementById('kpiIngreso').innerText = formatKPI(totalIngresoL) + " L";
-            document.getElementById('kpiConsumo').innerText = formatKPI(totalConsumoEqKg) + " kg";
-            document.getElementById('kpiRestante').innerText = formatKPI(restanteKg) + " kg";
             
-            updateChart();
+            document.getElementById('status').innerText = "Guardado con éxito";
+            render();
         }
 
-        function enableEdit(index) {
-            document.getElementById(`cant_${index}`).disabled = false;
-            document.getElementById(`btnEdit_${index}`).style.display = 'none';
-            document.getElementById(`btnSave_${index}`).style.display = 'inline-block';
+        function render() {
+            let l = document.getElementById('lista');
+            l.innerHTML = "";
+            datos.forEach(d => l.innerHTML += `<li>${d.fecha}: ${d.cantidad} L</li>`);
         }
 
-        function saveEdit(index) {
-            let nuevaCantidad = document.getElementById(`cant_${index}`).value;
-            kardexData[index].cantidad = parseFloat(nuevaCantidad) || 0;
-            renderApp();
-            saveToGoogleSheets();
-        }
-
-        function addNewItem() {
-            const fecha = document.getElementById('newFecha').value;
-            const cantidad = parseFloat(document.getElementById('newCantidad').value) || 0;
-
-            if (!fecha || isNaN(cantidad)) {
-                alert("Por favor selecciona una fecha y escribe una cantidad válida.");
-                return;
-            }
-
-            kardexData.push({ fecha, cantidad });
-            
-            document.getElementById('newFecha').value = '';
-            document.getElementById('newCantidad').value = '';
-
-            renderApp();
-            saveToGoogleSheets();
-        }
-
-        function deleteItem(index) {
-            if (confirm("¿Estás seguro de eliminar este registro de la base de datos?")) {
-                kardexData.splice(index, 1);
-                renderApp();
-                saveToGoogleSheets();
-            }
-
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById('kardexChart').getContext('2d');
-            if(window.myChart) window.myChart.destroy();
-            
-            let acumuladoTemp = 0;
-            let datosGrafica = kardexData.map((i, idx) => {
-                acumuladoTemp += (Number(i.cantidad) || 0) / RATIO_L_POR_KG;
-                return { dia: `Día ${idx + 1}`, acumulado: acumuladoTemp };
-            });
-
-            window.myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: datosGrafica.map(i => i.dia),
-                    datasets: [{
-                        label: 'Avance Acumulado (kg)',
-                        data: datosGrafica.map(i => i.acumulado),
-                        borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        fill: true,
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: { display: true, text: 'Progreso Acumulado hacia la Meta de 21.981 kg' }
-                    }
-                }
-            });
-        }
-
-        function toggleTable() {
-            const s = document.getElementById('tableSection');
-            s.style.display = s.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // Ejecutar lectura inicial directo de la nube
-        loadFromGoogleSheets();
+        cargar();
     </script>
 </body>
 </html>
